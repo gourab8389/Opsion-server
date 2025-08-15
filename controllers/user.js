@@ -37,3 +37,70 @@ export const signup = async (req, res) => {
     });
   }
 };
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+     const user = await User.findOne({email});
+     if(!user){
+       return res.status(404).json({
+         message: "User not found"
+       });
+     }
+
+     const isMatch = await bcrypt.compare(password, user.password);
+     if(!isMatch){
+       return res.status(401).json({
+         message: "Invalid credentials"
+       });
+     }
+
+     const token = jwt.sign(
+       {
+         _id: user._id,
+         role: user.role,
+       },
+       process.env.JWT_SECRET,
+       { expiresIn: "5d" }
+     );
+
+     res.status(200).json({
+       message: "Login successful",
+       user,
+       token,
+     });
+  } catch (error) {
+    res.status(500).json({
+      message: "Login failed",
+      error: error.message,
+    });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    if(!token){
+        return res.status(401).json({
+          message: "Unauthorized"
+        });
+    }
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          message: "Invalid token"
+        });
+      }
+      // Token is valid, proceed with logout
+      res.status(200).json({
+        message: "Logout successful"
+      });
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Logout failed",
+      error: error.message,
+    });
+  }
+};
