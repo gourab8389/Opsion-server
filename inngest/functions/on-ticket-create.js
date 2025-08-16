@@ -1,8 +1,9 @@
 import { inngest } from "../client.js";
 import Ticket from "../../models/ticket.js";
-import { NonRetriableError } from "inngest";
 import User from "../../models/user.js";
-import { sendEmail } from "../../utils/mailer.js";
+import { NonRetriableError } from "inngest";
+import { sendMail } from "../../utils/mailer.js";
+import analyzeTicket from "../../utils/ai.js";
 
 export const onTicketCreated = inngest.createFunction(
   { id: "on-ticket-created", retries: 2 },
@@ -11,10 +12,10 @@ export const onTicketCreated = inngest.createFunction(
     try {
       const { ticketId } = event.data;
 
-      // fetch ticket from db
+      //fetch ticket from DB
       const ticket = await step.run("fetch-ticket", async () => {
         const ticketObject = await Ticket.findById(ticketId);
-        if (!ticketObject) {
+        if (!ticket) {
           throw new NonRetriableError("Ticket not found");
         }
         return ticketObject;
@@ -26,7 +27,7 @@ export const onTicketCreated = inngest.createFunction(
 
       const aiResponse = await analyzeTicket(ticket);
 
-      const relatedSkills = await step.run("ai-processing", async () => {
+      const relatedskills = await step.run("ai-processing", async () => {
         let skills = [];
         if (aiResponse) {
           await Ticket.findByIdAndUpdate(ticket._id, {
@@ -47,7 +48,7 @@ export const onTicketCreated = inngest.createFunction(
           role: "moderator",
           skills: {
             $elemMatch: {
-              $regex: relatedSkills.join("|"),
+              $regex: relatedskills.join("|"),
               $options: "i",
             },
           },
@@ -57,27 +58,26 @@ export const onTicketCreated = inngest.createFunction(
             role: "admin",
           });
         }
-
         await Ticket.findByIdAndUpdate(ticket._id, {
           assignedTo: user?._id || null,
         });
         return user;
       });
 
-      await step.run("send-email-notification", async () => {
+      await setp.run("send-email-notification", async () => {
         if (moderator) {
           const finalTicket = await Ticket.findById(ticket._id);
-          await sendEmail(
+          await sendMail(
             moderator.email,
-            "New Ticket Assigned",
-            `You have been assigned to a new ticket: ${finalTicket.title}`
+            "Ticket Assigned",
+            `A new ticket is assigned to you ${finalTicket.title}`
           );
         }
       });
 
       return { success: true };
-    } catch (error) {
-      console.error("Error processing ticket creation:", error.message);
+    } catch (err) {
+      console.error("❌ Error running the step", err.message);
       return { success: false };
     }
   }

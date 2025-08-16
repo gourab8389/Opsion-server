@@ -1,9 +1,9 @@
 import { inngest } from "../client.js";
 import User from "../../models/user.js";
 import { NonRetriableError } from "inngest";
-import { sendEmail } from "../../utils/mailer.js";
+import { sendMail } from "../../utils/mailer.js";
 
-export const onUserSignUp = inngest.createFunction(
+export const onUserSignup = inngest.createFunction(
   { id: "on-user-signup", retries: 2 },
   { event: "user/signup" },
   async ({ event, step }) => {
@@ -12,21 +12,23 @@ export const onUserSignUp = inngest.createFunction(
       const user = await step.run("get-user-email", async () => {
         const userObject = await User.findOne({ email });
         if (!userObject) {
-          throw new NonRetriableError("User not found");
+          throw new NonRetriableError("User no longer exists in our database");
         }
         return userObject;
       });
-      
-      await step.run("send-welcome-email", async () => {
-        const subject = `Welcome to our platform, ${user.name}!`;
-        const message = `Hi ${user.name},\n\nThank you for signing up! We're excited to have you on board.\n\nBest regards,\nThe Team`;
 
-        await sendEmail(user.email, subject, message);
+      await setp.run("send-welcome-email", async () => {
+        const subject = `Welcome to the app`;
+        const message = `Hi,
+            \n\n
+            Thanks for signing up. We're glad to have you onboard!
+            `;
+        await sendMail(user.email, subject, message);
       });
 
       return { success: true };
     } catch (error) {
-      step.fail("get-user-email", error);
+      console.error("❌ Error running step", error.message);
       return { success: false };
     }
   }
