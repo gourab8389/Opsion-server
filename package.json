@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "test": "nodemon index.js"
+    "test": "nodemon index.js",
+    "inngest-dev": "npx inngest-cli@latest dev"
   },
   "keywords": [],
   "author": "",
