@@ -7,7 +7,7 @@ import ticketRoutes from "./routes/ticket.js";
 import { serve } from "inngest/express";
 import { inngest } from "./inngest/client.js";
 import { onUserSignUp } from "./inngest/functions/on-signup.js"
-import { onTicketCreated } from "./inngest/functions/on-ticket-created.js";
+import { onTicketCreated } from "./inngest/functions/on-ticket-create.js";
 
 dotenv.config();
 
